@@ -34,6 +34,7 @@
 - After modifying any `.md` file, verify code fences are balanced (even number of triple backticks)
 - The `build-check.sh` hook validates this automatically before commits
 - Keep the nested `skills/claude-code-project-bootstrap/SKILL.md` in sync with root `SKILL.md`
+- Never commit if build or validation fails
 - Auto-commit after successful validation
 
 ## Git Workflow
