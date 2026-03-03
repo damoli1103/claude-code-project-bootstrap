@@ -118,6 +118,16 @@ The build-check hook includes templates for:
 | Go | `go build ./...` | `go test ./...` |
 | Swift/Xcode | `xcodebuild build -scheme ...` | `xcodebuild test -scheme ...` |
 
+
+## Heads Up
+
+- **Hooks only run inside Claude Code** — manual terminal commands and IDE commits are not affected. These are guardrails for AI-assisted development, not a full security system.
+- **build-check.sh runs your full build on every commit** — this may be slow on large projects. Consider using a lighter check (e.g. `tsc --noEmit` instead of `npm run build`) or removing the build gate if it becomes a bottleneck.
+- **validate-bash.sh blocks `git checkout main`** — this is by design to enforce feature-branch workflow. Use `git checkout -b <branch> origin/main` instead.
+- **protect-files.sh blocks `.env` writes** — create your environment files manually before bootstrapping, or temporarily disable the hook.
+- **The generated CLAUDE.md instructs Claude to auto-commit** after successful builds. Edit or remove this instruction if you prefer manual commits.
+- **These are accident prevention, not security** — anyone with terminal access can bypass the hooks. They prevent Claude from making destructive mistakes, not intentional actions.
+
 ## Contributing
 
 Issues and PRs welcome. If you add support for a new stack or improve a hook pattern, please share it back.
