@@ -114,12 +114,13 @@ git push -u origin main
 
 ## Step 9: Permissions Guidance
 
-After setup, explain the two permission levels from the `claude-code-project-bootstrap` skill:
+After setup, explain the three permission levels from the `claude-code-project-bootstrap` skill:
 
-1. **Minimal (recommended)** — only git and basic commands auto-approved; user prompted for everything else
-2. **Full auto-accept (power user)** — broad read/write/bash permissions with deny rules for ~/.ssh, ~/.aws, ~/.claude
+1. **Minimal (conservative)** — only git and basic commands auto-approved; user prompted for everything else
+2. **Balanced (recommended)** — full autonomy within the project + `~/.claude/` (memory, plans); reads anywhere; destructive Bash commands and writes outside the project still prompt for approval
+3. **Full auto-accept (power user)** — broad read/write/bash permissions everywhere with deny rules for `~/.ssh`, `~/.aws`, `~/.gnupg`
 
-Explain the risks of full auto-accept (unrestricted file access, bash commands run without confirmation, only deny-listed paths are protected).
+Explain the risks of full auto-accept (unrestricted file access, bash commands run without confirmation, only deny-listed paths are protected). Recommend Balanced for most users.
 
 Let the user choose. Do NOT create settings.local.json — just print the JSON so they can decide.
 

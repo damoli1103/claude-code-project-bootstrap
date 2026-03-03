@@ -141,7 +141,7 @@ The build-check hook auto-detects your stack and runs the right commands:
 
 The `settings.local.json` file controls which actions Claude can auto-approve without prompting. It's per-user and NOT committed to git.
 
-### Minimal (recommended for new users)
+### Minimal (conservative — recommended for new users)
 
 ```json
 {
@@ -154,9 +154,33 @@ The `settings.local.json` file controls which actions Claude can auto-approve wi
 }
 ```
 
-### Full Auto-Accept (power user)
+### Balanced (recommended — project-scoped auto-accept)
 
-Broad permissions for uninterrupted workflow, with deny rules protecting sensitive directories:
+Full autonomy within the project and `~/.claude/` (memory, plans, settings). Everything outside the project prompts for approval:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebSearch", "WebFetch",
+      "Read",
+      "Write(~/.claude/**)", "Edit(~/.claude/**)",
+      "Bash(git *)", "Bash(gh *)",
+      "Bash(ls *)", "Bash(mkdir *)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)", "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)", "Read(~/.config/gh/**)"
+    ]
+  }
+}
+```
+
+Claude can read anywhere, write/edit its own config, and run git commands — but destructive Bash commands (`rm`, `cp`, `mv`) and writes outside the project still prompt for approval.
+
+### Full Auto-Accept (power user — use with caution)
+
+Broad permissions for uninterrupted workflow. Claude can read, write, and delete files **anywhere on your local machine** outside the deny list:
 
 ```json
 {
@@ -169,14 +193,16 @@ Broad permissions for uninterrupted workflow, with deny rules protecting sensiti
       "Bash(cp *)", "Bash(mv *)", "Bash(rm *)"
     ],
     "deny": [
-      "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.claude/**)",
-      "Edit(~/.ssh/**)", "Edit(~/.aws/**)", "Edit(~/.claude/**)"
+      "Read(~/.ssh/**)", "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)", "Read(~/.config/gh/**)",
+      "Edit(~/.ssh/**)", "Edit(~/.aws/**)",
+      "Write(~/.ssh/**)", "Write(~/.aws/**)"
     ]
   }
 }
 ```
 
-> **Risks of full auto-accept:** Claude can read/write/delete files anywhere outside deny-listed paths. Bash commands execute without confirmation. The `protect-files.sh` hook guards Write/Edit tool calls, but Bash commands (`cp`, `mv`, `rm`) bypass hooks. Start with the minimal set and expand as you get comfortable.
+> **Risks of full auto-accept:** Claude can read/write/delete files anywhere outside deny-listed paths. Bash commands execute without confirmation. The `protect-files.sh` hook guards Write/Edit tool calls, but Bash commands (`cp`, `mv`, `rm`) bypass hooks. Start with **Balanced** and only switch to full auto-accept after you're comfortable with how Claude operates.
 
 Adapt the `allow` list to your stack — add `Bash(cargo *)`, `Bash(go *)`, `Bash(python *)`, `Bash(xcodebuild *)`, etc.
 
