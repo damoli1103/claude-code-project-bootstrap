@@ -38,20 +38,50 @@ Run through ALL checks below. For each, report one of:
 Check `.claude/hooks/` directory:
 
 - [ ] `validate-bash.sh` exists and is executable
-  - [ ] Blocks `rm -rf`
-  - [ ] Blocks `git push --force`
-  - [ ] Blocks `git reset --hard`
-  - [ ] Blocks `git checkout main`
-  - [ ] Blocks `git clean -f`
+  - [ ] Blocks recursive forced deletion
+  - [ ] Blocks force push
+  - [ ] Blocks hard reset
+  - [ ] Blocks checkout of main/master
+  - [ ] Blocks forced clean
   - [ ] Gates commits behind build check
+  - [ ] Validates commit messages against conventional format
+  - [ ] Warns on large diffs (>30 files or >1000 lines)
+  - [ ] Validates branch names against convention (feature/, fix/, test/, etc.)
+  - [ ] Error messages include suggested alternatives
+  - [ ] Prints success feedback after all pre-commit checks pass
 - [ ] `protect-files.sh` exists and is executable
   - [ ] Blocks writes outside project directory
   - [ ] Blocks `.env*` files
   - [ ] Blocks credential files (`credentials.json`, `secrets.json`, `*.key`, `*.pem`)
   - [ ] Has stack-specific blocks enabled (if applicable)
 - [ ] `build-check.sh` exists and is executable
-  - [ ] Has a build command uncommented (not just the fallback "no build system" message)
-  - [ ] Build command matches the actual project stack
+  - [ ] Auto-detects project stack (not commented-out stubs)
+  - [ ] Detects Node/TS (`package.json`)
+  - [ ] Detects Rust (`Cargo.toml`)
+  - [ ] Detects Go (`go.mod`)
+  - [ ] Detects Python (`pyproject.toml`/`setup.py`)
+  - [ ] Detects Xcode (`*.xcodeproj`/`*.xcworkspace`)
+  - [ ] Runs tests after build (test gate)
+  - [ ] Prints "Build passed" / "Tests passed" feedback
+- [ ] `scan-secrets.sh` exists and is executable
+  - [ ] Scans for API key patterns (`sk-`, `AKIA`, `ghp_`, `gho_`, `glpat-`)
+  - [ ] Scans for hardcoded secret assignments (`API_KEY=`, `PASSWORD=`, etc.)
+  - [ ] Scans for private key material (`-----BEGIN.*PRIVATE KEY`)
+  - [ ] Scans for JWT tokens
+  - [ ] Is non-blocking (always exits 0)
+- [ ] `session-check.sh` exists and is executable
+  - [ ] Checks `.claude/hooks/` directory exists
+  - [ ] Checks `CLAUDE.md` exists
+  - [ ] Checks all 6 hook scripts exist and are executable
+  - [ ] Is non-blocking (always exits 0)
+- [ ] `auto-format.sh` exists and is executable
+  - [ ] Handles `.ts/.tsx/.js/.jsx` (prettier)
+  - [ ] Handles `.py` (ruff/black)
+  - [ ] Handles `.rs` (rustfmt)
+  - [ ] Handles `.swift` (swiftformat)
+  - [ ] Handles `.go` (gofmt)
+  - [ ] Uses `command -v` guards (doesn't fail if formatter not installed)
+  - [ ] Is non-blocking (always exits 0)
 
 ### 4. settings.json
 
@@ -60,8 +90,11 @@ Check `.claude/settings.json`:
 - [ ] File exists
 - [ ] Has `PreToolUse` hook for `Bash` → `validate-bash.sh`
 - [ ] Has `PreToolUse` hook for `Write|Edit` → `protect-files.sh`
+- [ ] Has `PostToolUse` hook for `Write|Edit` → `scan-secrets.sh`
+- [ ] Has `PostToolUse` hook for `Write|Edit` → `auto-format.sh`
+- [ ] Has `SessionStart` hook → `session-check.sh`
 - [ ] Paths use `$CLAUDE_PROJECT_DIR` (portable, not hardcoded)
-- [ ] Timeouts are set (recommended: 10s)
+- [ ] Timeouts are set (recommended: 10-15s)
 
 ### 5. settings.local.json
 
@@ -97,7 +130,7 @@ Quick check for common security issues:
 
 ## Report Format
 
-After running all checks, present results as a table:
+After running all 45+ checks, present results as a table:
 
 ```
 ## Audit Results
@@ -106,8 +139,8 @@ After running all checks, present results as a table:
 |-----------------|--------|----------------------------------|
 | Git & GitHub    | PASS   | Repo configured, .gitignore good |
 | README          | WARN   | Missing contributing section     |
-| Hooks           | FAIL   | No build-check.sh found         |
-| settings.json   | PASS   | All hooks wired                  |
+| Hooks           | FAIL   | Missing scan-secrets.sh          |
+| settings.json   | WARN   | Missing PostToolUse hooks        |
 | settings.local  | PASS   | Not committed                    |
 | CLAUDE.md       | WARN   | Missing post-merge protocol      |
 | Security        | PASS   | No secrets in git                |

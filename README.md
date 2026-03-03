@@ -5,9 +5,16 @@ A skill pack for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) t
 ## What It Does
 
 - **Blocks destructive commands** — prevents dangerous git operations and file deletions
-- **Gates commits behind passing builds** — your project won't commit broken code
+- **Gates commits behind passing builds and tests** — auto-detects your stack and runs the right commands
 - **Protects sensitive files** — `.env`, credentials, keys, certs can't be accidentally written
 - **Enforces git workflow** — feature branches, conventional commits, post-merge cleanup
+- **Validates commit messages** — enforces conventional commit format before allowing commits
+- **Validates branch names** — ensures branches follow naming convention (feature/, fix/, etc.)
+- **Warns on large commits** — flags commits with >30 files or >1000 lines changed
+- **Scans for secrets** — warns when API keys, tokens, or private keys appear in written files
+- **Auto-formats code** — runs prettier, ruff, rustfmt, swiftformat, or gofmt after writes
+- **Health checks on start** — verifies hooks and CLAUDE.md are present each session
+- **Helpful error messages** — blocked actions include suggested alternatives
 - **Generates project scaffolding** — README, CLAUDE.md, .gitignore, GitHub repo
 
 Works with any stack: Node/TS, Python, Rust, Go, Swift/Xcode, and more.
@@ -51,8 +58,8 @@ Claude will ask for your project name, stack, and visibility preference, then cr
 - GitHub repo (public or private)
 - `.gitignore` (stack-aware)
 - `README.md`
-- `.claude/hooks/` (validate-bash, protect-files, build-check)
-- `.claude/settings.json` (hook wiring)
+- `.claude/hooks/` (6 hooks — see below)
+- `.claude/settings.json` (hook wiring for PreToolUse, PostToolUse, SessionStart)
 - `CLAUDE.md` (project instructions)
 
 ### Audit an existing project
@@ -63,14 +70,14 @@ Open Claude Code in any project and run:
 /audit-project
 ```
 
-Claude checks 30+ items across 7 areas:
+Claude checks 45+ items across 7 areas:
 
 | Area | What It Checks |
 |------|---------------|
 | Git & GitHub | Repo exists, remote configured, .gitignore complete |
 | README | Exists, has description, install instructions, contributing guide |
-| Hooks | All 3 hooks exist, are executable, have correct patterns |
-| settings.json | Hooks wired, portable paths, timeouts set |
+| Hooks | All 6 hooks exist, are executable, have correct patterns and behaviors |
+| settings.json | PreToolUse, PostToolUse, SessionStart hooks wired, portable paths, timeouts set |
 | settings.local | Exists, not committed to git |
 | CLAUDE.md | Has all required sections (context, architecture, change protocol, git workflow) |
 | Security | No .env or credentials committed |
@@ -83,9 +90,12 @@ Reports results as a table and offers to fix everything it finds.
 your-project/
 ├── .claude/
 │   ├── hooks/
-│   │   ├── validate-bash.sh      # blocks destructive commands, gates commits
+│   │   ├── validate-bash.sh      # blocks destructive commands, gates commits, validates messages + branches
 │   │   ├── protect-files.sh      # blocks writes to sensitive files
-│   │   └── build-check.sh        # runs build/lint/test before commit
+│   │   ├── build-check.sh        # auto-detects stack, runs build + tests
+│   │   ├── scan-secrets.sh       # warns on hardcoded secrets in written files
+│   │   ├── session-check.sh      # verifies hooks setup on session start
+│   │   └── auto-format.sh        # formats files after write (if formatters installed)
 │   ├── settings.json             # hook wiring (shared with team)
 │   └── settings.local.json       # user allow-list (NOT committed)
 ├── .gitignore
@@ -96,7 +106,15 @@ your-project/
 
 ## How Hooks Work
 
-Claude Code hooks are shell scripts that run before tool execution. They read JSON from stdin and control execution via exit codes:
+Claude Code hooks are shell scripts that run at specific points in the tool lifecycle:
+
+| Hook Event | When It Runs | Scripts |
+|------------|-------------|---------|
+| `PreToolUse` | Before a tool executes | validate-bash.sh (Bash), protect-files.sh (Write/Edit) |
+| `PostToolUse` | After a tool executes | scan-secrets.sh (Write/Edit), auto-format.sh (Write/Edit) |
+| `SessionStart` | When a session begins | session-check.sh |
+
+Exit codes control execution:
 
 | Exit Code | Meaning |
 |-----------|---------|
@@ -108,15 +126,15 @@ The hooks are registered in `.claude/settings.json` (committed to git, shared wi
 
 ## Supported Stacks
 
-The build-check hook includes templates for:
+The build-check hook auto-detects your stack and runs the right commands:
 
 | Stack | Build Command | Test Command |
 |-------|--------------|-------------|
 | Node/TS | `npm run build` | `npm test` |
-| Python | `python -m py_compile` / `mypy .` | `pytest` |
+| Python | `python -m py_compile` | `pytest` |
 | Rust | `cargo build` | `cargo test` |
 | Go | `go build ./...` | `go test ./...` |
-| Swift/Xcode | `xcodebuild build -scheme ...` | `xcodebuild test -scheme ...` |
+| Swift/Xcode | `xcodebuild build -scheme ...` | *(configure in CLAUDE.md)* |
 
 
 ## Heads Up
@@ -125,6 +143,8 @@ The build-check hook includes templates for:
 - **build-check.sh runs your full build on every commit** — this may be slow on large projects. Consider using a lighter check (e.g. `tsc --noEmit` instead of `npm run build`) or removing the build gate if it becomes a bottleneck.
 - **validate-bash.sh blocks `git checkout main`** — this is by design to enforce feature-branch workflow. Use `git checkout -b <branch> origin/main` instead.
 - **protect-files.sh blocks `.env` writes** — create your environment files manually before bootstrapping, or temporarily disable the hook.
+- **scan-secrets.sh is non-blocking** — it only warns, never blocks. Review warnings and move secrets to environment variables.
+- **auto-format.sh requires formatters to be installed** — it silently skips formatting if the formatter isn't available. Install prettier, ruff, rustfmt, etc. for your stack.
 - **The generated CLAUDE.md instructs Claude to auto-commit** after successful builds. Edit or remove this instruction if you prefer manual commits.
 - **These are accident prevention, not security** — anyone with terminal access can bypass the hooks. They prevent Claude from making destructive mistakes, not intentional actions.
 

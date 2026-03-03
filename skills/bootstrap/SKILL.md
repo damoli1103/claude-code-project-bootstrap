@@ -74,17 +74,23 @@ If README exists, skip. Do NOT overwrite an existing README.
 
 ## Step 5: Hooks
 
-Create `.claude/hooks/` with three scripts from the `claude-code-project-bootstrap` skill:
+Create `.claude/hooks/` with six scripts from the `claude-code-project-bootstrap` skill:
 
-1. **validate-bash.sh** — blocks rm -rf, force push, reset --hard, checkout main, clean -f; gates commits behind build-check.sh
+1. **validate-bash.sh** — blocks destructive operations (forced deletion, force push, hard reset, checkout main, forced clean); validates branch names against convention; gates commits behind build-check.sh; validates commit messages against conventional format; warns on large diffs
 2. **protect-files.sh** — blocks writes to .env, credentials, keys, files outside project; uncomment stack-specific blocks based on Step 1
-3. **build-check.sh** — uncomment the correct build command based on the stack from Step 1
+3. **build-check.sh** — auto-detects project stack (Node, Rust, Go, Python, Xcode) and runs appropriate build and test commands
+4. **scan-secrets.sh** — scans written files for hardcoded API keys, tokens, private keys, JWTs; non-blocking warning only
+5. **session-check.sh** — verifies hooks directory, CLAUDE.md, and all hook scripts exist and are executable on session start
+6. **auto-format.sh** — runs available formatters (prettier, ruff/black, rustfmt, swiftformat, gofmt) on written files; non-blocking
 
 Make all executable: `chmod +x .claude/hooks/*.sh`
 
 ## Step 6: settings.json
 
-Create `.claude/settings.json` with PreToolUse hook wiring for Bash → validate-bash.sh and Write|Edit → protect-files.sh.
+Create `.claude/settings.json` with:
+- **PreToolUse** hooks: Bash → validate-bash.sh, Write|Edit → protect-files.sh
+- **PostToolUse** hooks: Write|Edit → scan-secrets.sh + auto-format.sh
+- **SessionStart** hooks: session-check.sh
 
 Do NOT create or modify `settings.local.json` — that's user-specific.
 
