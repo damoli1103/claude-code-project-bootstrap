@@ -137,6 +137,49 @@ The build-check hook auto-detects your stack and runs the right commands:
 | Swift/Xcode | `xcodebuild build -scheme ...` | *(configure in CLAUDE.md)* |
 
 
+## Permissions (settings.local.json)
+
+The `settings.local.json` file controls which actions Claude can auto-approve without prompting. It's per-user and NOT committed to git.
+
+### Minimal (recommended for new users)
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
+      "Bash(git fetch:*)", "Bash(gh pr:*)", "Bash(ls:*)", "WebSearch"
+    ]
+  }
+}
+```
+
+### Full Auto-Accept (power user)
+
+Broad permissions for uninterrupted workflow, with deny rules protecting sensitive directories:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebSearch", "WebFetch",
+      "Read(/)", "Edit(/)", "Write(/)",
+      "Bash(npm *)", "Bash(npx *)", "Bash(node *)",
+      "Bash(git *)", "Bash(ls *)", "Bash(mkdir *)",
+      "Bash(cp *)", "Bash(mv *)", "Bash(rm *)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.claude/**)",
+      "Edit(~/.ssh/**)", "Edit(~/.aws/**)", "Edit(~/.claude/**)"
+    ]
+  }
+}
+```
+
+> **Risks of full auto-accept:** Claude can read/write/delete files anywhere outside deny-listed paths. Bash commands execute without confirmation. The `protect-files.sh` hook guards Write/Edit tool calls, but Bash commands (`cp`, `mv`, `rm`) bypass hooks. Start with the minimal set and expand as you get comfortable.
+
+Adapt the `allow` list to your stack — add `Bash(cargo *)`, `Bash(go *)`, `Bash(python *)`, `Bash(xcodebuild *)`, etc.
+
 ## Heads Up
 
 - **Hooks only run inside Claude Code** — manual terminal commands and IDE commits are not affected. These are guardrails for AI-assisted development, not a full security system.

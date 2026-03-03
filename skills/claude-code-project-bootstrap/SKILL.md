@@ -614,7 +614,11 @@ git push -u origin main
 
 ## Permissions (settings.local.json)
 
-Not committed. Per-user allow-list that grows as you approve commands:
+Not committed to git. This is a per-user file that controls which tool actions Claude can take without prompting for approval. There are two levels:
+
+### Minimal (conservative — recommended for new users)
+
+Only allows basic git operations. You'll be prompted for everything else and can approve one-off actions as needed:
 
 ```json
 {
@@ -628,3 +632,59 @@ Not committed. Per-user allow-list that grows as you approve commands:
 ```
 
 Common additions: `Bash(npm run:*)`, `Bash(cargo:*)`, `Bash(go:*)`, `Bash(docker:*)`, `Bash(xcodebuild:*)`.
+
+### Full Auto-Accept (power user — use with caution)
+
+Grants broad permissions so Claude can work without interruption. Includes deny rules to protect sensitive directories:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Read(/)",
+      "Edit(/)",
+      "Write(/)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(rm *)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/**)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.aws/**)",
+      "Edit(~/.claude/**)"
+    ]
+  }
+}
+```
+
+**What this does:**
+- `Read(/)`, `Edit(/)`, `Write(/)` — Claude can read, edit, and create files anywhere on disk without prompting
+- `Bash(git *)`, `Bash(npm *)`, etc. — Claude can run git, npm, and filesystem commands without prompting
+- `WebSearch`, `WebFetch` — Claude can search the web and fetch URLs without prompting
+- `deny` rules — even with broad read/edit access, Claude is blocked from accessing SSH keys, AWS credentials, and Claude's own config
+
+**Risks:**
+- **File system access is unrestricted** — Claude can read, write, and delete files anywhere outside the deny list. A mistake or misunderstanding could modify files outside your project. The `protect-files.sh` hook mitigates this for Write/Edit tool calls, but Bash commands like `cp`, `mv`, `rm` bypass that hook.
+- **Bash commands run without approval** — any `git`, `npm`, `node`, `rm`, `cp`, `mv` command executes immediately. If Claude misinterprets your intent, there's no confirmation step.
+- **Web access is open** — Claude can search and fetch any URL. This is generally safe but means data from your conversation context could be sent to search engines.
+- **Deny rules only cover specific paths** — `~/.ssh`, `~/.aws`, `~/.claude` are protected, but other sensitive locations (e.g. `~/.gnupg`, `~/.config`, `/etc`) are not. Add more deny rules if you have other sensitive directories.
+
+**Recommendation:** Start with the minimal set. Approve actions as they come up — Claude Code accumulates approvals in `settings.local.json` over time. Switch to full auto-accept only after you're comfortable with how Claude operates in your project and understand the hooks that provide guardrails.
+
+Adapt the `allow` list to your stack:
+- **Python:** add `Bash(python *)"`, `Bash(pip *)`, `Bash(pytest *)`
+- **Rust:** add `Bash(cargo *)`
+- **Go:** add `Bash(go *)`
+- **Swift/Xcode:** add `Bash(xcodebuild *)`, `Bash(swift *)`
+

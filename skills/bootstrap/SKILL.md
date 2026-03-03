@@ -112,10 +112,22 @@ git commit -m "chore(infra): bootstrap project with Claude Code hooks and workfl
 git push -u origin main
 ```
 
-## Step 9: Summary
+## Step 9: Permissions Guidance
+
+After setup, explain the two permission levels from the `claude-code-project-bootstrap` skill:
+
+1. **Minimal (recommended)** — only git and basic commands auto-approved; user prompted for everything else
+2. **Full auto-accept (power user)** — broad read/write/bash permissions with deny rules for ~/.ssh, ~/.aws, ~/.claude
+
+Explain the risks of full auto-accept (unrestricted file access, bash commands run without confirmation, only deny-listed paths are protected).
+
+Let the user choose. Do NOT create settings.local.json — just print the JSON so they can decide.
+
+## Step 10: Summary
 
 Print a summary:
 - GitHub repo URL
 - Files created
 - Hooks installed and what they enforce
+- Permission level chosen (or "minimal by default")
 - Next steps (start a feature branch, install relevant skills, etc.)
