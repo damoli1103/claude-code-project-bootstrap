@@ -243,6 +243,61 @@ if echo "$COMMAND" | grep -qE 'git\s+clean\s+-f'; then
   exit 2
 fi
 
+# === Bash file-write protection ===
+# Extends protect-files.sh coverage to Bash commands (cp, mv, tee, redirects)
+# that bypass the Write/Edit tool hooks.
+
+check_path() {
+  local TARGET="$1"
+  [ -z "$TARGET" ] && return 0
+
+  # Resolve relative paths
+  [[ "$TARGET" != /* ]] && TARGET="$CLAUDE_PROJECT_DIR/$TARGET"
+
+  # Allow Claude memory
+  [[ "$TARGET" == "$HOME/.claude/"* ]] && return 0
+
+  # Block sensitive directories
+  for SENSITIVE_DIR in "$HOME/.ssh" "$HOME/.aws" "$HOME/.gnupg" "$HOME/.config/gh"; do
+    if [[ "$TARGET" == "$SENSITIVE_DIR"* ]]; then
+      echo "BLOCKED: '$TARGET' is in a sensitive directory ($SENSITIVE_DIR). Do not read or write credentials." >&2
+      exit 2
+    fi
+  done
+
+  # Block outside project
+  [[ "$TARGET" != "$CLAUDE_PROJECT_DIR"* ]] && echo "BLOCKED: '$TARGET' is outside the project directory. Use Write/Edit tool for in-project files, or ask the user." >&2 && exit 2
+
+  # Block secrets by filename
+  local BASENAME
+  BASENAME=$(basename "$TARGET")
+  case "$BASENAME" in
+    .env|.env.local|.env.production|.env.staging|.env.development) echo "BLOCKED: cannot write to env file '$BASENAME' via Bash." >&2; exit 2;;
+    credentials.json|secrets.json|secrets.yaml) echo "BLOCKED: cannot write to credentials file '$BASENAME' via Bash." >&2; exit 2;;
+    *.key|*.pem|*.p12|*.pfx) echo "BLOCKED: cannot write to key/cert file '$BASENAME' via Bash." >&2; exit 2;;
+  esac
+
+  return 0
+}
+
+# Check cp/mv destination (last argument)
+if echo "$COMMAND" | grep -qE '^\s*(cp|mv)\s'; then
+  DEST=$(echo "$COMMAND" | awk '{print $NF}')
+  check_path "$DEST"
+fi
+
+# Check tee target
+if echo "$COMMAND" | grep -qE '\btee\s'; then
+  TEE_TARGET=$(echo "$COMMAND" | sed -n 's/.*tee\s\+\(-a\s\+\)\?\([^ |;>&]*\).*/\2/p')
+  check_path "$TEE_TARGET"
+fi
+
+# Check output redirects (> and >>)
+if echo "$COMMAND" | grep -qE '>\s*/|>\s*~'; then
+  REDIR_TARGET=$(echo "$COMMAND" | grep -oE '>{1,2}\s*[^ ;|&]+' | tail -1 | sed 's/>{1,2}\s*//')
+  check_path "$REDIR_TARGET"
+fi
+
 # === Branch name validation ===
 if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+'; then
   BRANCH_NAME=$(echo "$COMMAND" | sed -n 's/.*git checkout -b \([^ ]*\).*/\1/p')
