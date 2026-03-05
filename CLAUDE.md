@@ -26,6 +26,7 @@
 └── skills/
     ├── audit-project/SKILL.md            # /audit-project slash command
     ├── bootstrap/SKILL.md                # /bootstrap slash command
+    ├── init-planning/SKILL.md            # /init-planning slash command
     └── claude-code-project-bootstrap/    # Nested copy for install-skill compatibility
         └── SKILL.md
 ```
@@ -42,7 +43,7 @@
 - Branch naming: feature/<desc>, fix/<desc>, docs/<desc>, refactor/<desc>, chore/<desc>
 - Conventional commits: <type>(<scope>): <subject>
   - Types: feat, fix, docs, refactor, chore
-  - Scopes: skill, hooks, permissions, bootstrap, audit, readme
+  - Scopes: skill, hooks, permissions, bootstrap, audit, readme, planning
 
 ## Post-Merge Protocol
 1. git fetch origin main
