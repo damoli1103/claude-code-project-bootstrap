@@ -760,6 +760,98 @@ git push -u origin main
 [ ] git push
 ```
 
+## Structured Planning
+
+For multi-phase projects that benefit from structured planning, use the `.planning/` directory convention. This methodology provides project-level planning, session continuity, and wave-based parallel execution that complement the superpowers skills for task-level work.
+
+### When to Use Structured Planning
+
+- Multi-phase milestones with 3+ phases
+- Brownfield projects that need systematic codebase analysis before planning
+- Projects where session continuity matters (work spans multiple conversations)
+- Teams that need requirements traceability
+
+For simple features or single-phase work, use superpowers:writing-plans directly — no `.planning/` overhead needed.
+
+### `.planning/` Directory Convention
+
+```
+.planning/
+├── PROJECT.md                 # What we're building, core value, constraints
+├── REQUIREMENTS.md            # REQ-IDs with phase traceability
+├── ROADMAP.md                 # Phases, plans, success criteria, progress
+├── STATE.md                   # Current position, velocity, decisions, blockers
+├── .continue-here.md          # Session resume point
+├── config.json                # Workflow preferences
+├── codebase/                  # Brownfield analysis (7 docs)
+│   ├── ARCHITECTURE.md        # Layers, patterns, data flow
+│   ├── STRUCTURE.md           # Directory layout, file purposes
+│   ├── STACK.md               # Languages, frameworks, deps
+│   ├── CONVENTIONS.md         # Naming, code style, patterns
+│   ├── TESTING.md             # Test framework, coverage, strategy
+│   ├── CONCERNS.md            # Tech debt, risks, fragile areas
+│   └── INTEGRATIONS.md        # APIs, data storage, external services
+└── phases/
+    └── NN-phase-name/
+        ├── NN-CONTEXT.md      # Phase decisions + boundary
+        ├── NN-PP-PLAN.md      # Executable plan with must_haves
+        ├── NN-PP-SUMMARY.md   # Post-execution summary
+        └── NN-VERIFICATION.md # Phase quality gate
+```
+
+### Enhanced Plan Format (must_haves)
+
+The key innovation: each plan declares observable truths, required artifacts, and key links that must be verified. This gives executing agents unambiguous success criteria.
+
+```yaml
+# PLAN.md frontmatter
+phase: 01-feature-name
+plan: 01
+wave: 1                      # Plans in same wave with different files_modified → parallel
+depends_on: []                # Plan IDs that must complete first
+files_modified: [path/a.swift, path/b.swift]  # For parallel conflict detection
+requirements: [REQ-01, REQ-02]
+
+must_haves:
+  truths:                     # Observable statements that must be TRUE after execution
+    - "X replaces Y in all call sites"
+    - "Build passes with zero warnings"
+  artifacts:                  # Files that must exist with specific content
+    - path: "src/model.swift"
+      provides: "SyncOrigin enum"
+      contains: "enum SyncOrigin"
+  key_links:                  # Connections between components that must be wired
+    - from: "GestureHandler"
+      to: "appModel.syncOrigin"
+      via: "set to .gesture before writing"
+```
+
+Body uses XML-style sections: `<objective>`, `<context>`, `<interfaces>`, `<tasks>` (each with `<action>`, `<verify>`, `<done>`), `<verification>`, `<success_criteria>`. See `templates/planning/formats.md` for complete format reference.
+
+### Wave-Based Parallel Execution
+
+Enhances superpowers `dispatching-parallel-agents` with file-ownership tracking:
+
+1. Plans in the same wave with non-overlapping `files_modified` → spawn agents in parallel
+2. Each agent receives: full PLAN content (not file path — avoids read overhead), project context, shared file protocol
+3. Shared file protocol: each agent **appends** its section without removing existing code
+4. After all agents complete: single build verification
+5. If conflicts detected in shared files: reconcile sequentially
+
+### Session Continuity Protocol
+
+When a `.planning/` directory exists:
+
+- **On session start:** If `.planning/.continue-here.md` exists, read it and resume where the last session left off
+- **During work:** Update `STATE.md` with current position, decisions, and blockers
+- **On session end or natural pause:** Update `.continue-here.md` with the current workflow, completed work, remaining work, and specific next action
+
+This replaces ad-hoc memory notes with structured project state that any session can pick up.
+
+### Superpowers Integration
+
+Structured planning integrates with superpowers skills for task-level execution. See the `init-planning` skill for the full integration table mapping planning phases to superpowers skills.
+
 ## Permissions (settings.local.json)
 
 Not committed to git. This is a per-user file that controls which tool actions Claude can take without prompting for approval. There are two levels:
