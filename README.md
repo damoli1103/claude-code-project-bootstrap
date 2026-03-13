@@ -18,7 +18,7 @@ Works with any stack: Node/TS, Python, Rust, Go, Swift/Xcode, and more.
 Install the skill pack:
 
 ```bash
-claude install-skill damoli1103/claude-code-project-bootstrap
+claude install-skill https://github.com/damoli1103/claude-code-project-bootstrap
 ```
 
 Then open Claude Code in your project directory and run:
@@ -245,7 +245,7 @@ The `/bootstrap` wizard sets this up automatically.
 ### Option 1: Install from GitHub (recommended)
 
 ```bash
-claude install-skill damoli1103/claude-code-project-bootstrap
+claude install-skill https://github.com/damoli1103/claude-code-project-bootstrap
 ```
 
 ### Option 2: Manual install
