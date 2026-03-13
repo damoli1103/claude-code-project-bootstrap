@@ -15,10 +15,14 @@ Works with any stack: Node/TS, Python, Rust, Go, Swift/Xcode, and more.
 
 ## Quick Start
 
-Install the skill pack:
+Install the plugin:
 
 ```bash
-claude skill install https://github.com/damoli1103/claude-code-project-bootstrap
+# Add as a marketplace source
+claude plugin marketplace add https://github.com/damoli1103/claude-code-project-bootstrap
+
+# Install the plugin
+claude plugin install claude-code-project-bootstrap
 ```
 
 Then open Claude Code in your project directory and run:
@@ -242,10 +246,11 @@ The `/bootstrap` wizard sets this up automatically.
 
 ## Installation
 
-### Option 1: Install from GitHub (recommended)
+### Option 1: Install as plugin (recommended)
 
 ```bash
-claude skill install https://github.com/damoli1103/claude-code-project-bootstrap
+claude plugin marketplace add https://github.com/damoli1103/claude-code-project-bootstrap
+claude plugin install claude-code-project-bootstrap
 ```
 
 ### Option 2: Manual install

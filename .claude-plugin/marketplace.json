@@ -1,0 +1,27 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-code-project-bootstrap",
+  "description": "Claude Code skill pack: project bootstrap, audit, and structured planning",
+  "owner": {
+    "name": "damoli1103"
+  },
+  "metadata": {
+    "description": "Claude Code skill pack: project bootstrap with hooks and guardrails, 45+ point project audit, and structured multi-phase planning with codebase analysis",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-project-bootstrap",
+      "description": "Project bootstrap with hooks and guardrails, 45+ point project audit, and structured multi-phase planning with codebase analysis.",
+      "version": "1.0.0",
+      "author": {
+        "name": "damoli1103"
+      },
+      "source": {
+        "source": "url",
+        "url": "https://github.com/damoli1103/claude-code-project-bootstrap.git"
+      },
+      "category": "development"
+    }
+  ]
+}
