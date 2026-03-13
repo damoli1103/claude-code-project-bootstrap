@@ -46,9 +46,11 @@
   - Scopes: skill, hooks, permissions, bootstrap, audit, readme, planning
 
 ## Post-Merge Protocol
-1. git fetch origin main
-2. git checkout -b <next-branch> origin/main
-3. git branch -d <merged-branch>
+After a PR is merged, the remote branch is deleted. You MUST transition before doing any other work:
+1. Do NOT commit or push on the current branch — it will fail
+2. `git fetch origin main`
+3. `git checkout -b <next-branch> origin/main`
+4. `git branch -D <merged-branch>` (safe — it's already merged)
 
 ## Critical Rules
 ### Do

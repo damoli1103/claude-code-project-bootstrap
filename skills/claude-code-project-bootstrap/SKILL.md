@@ -343,9 +343,54 @@ if echo "$COMMAND" | grep -qE 'git\s+commit'; then
   echo "All pre-commit checks passed: build OK, message valid, ready to commit."
 fi
 
-# Post-merge reminder (non-blocking)
+# === Post-merge guard ===
+# After gh pr merge, auto-transition to a clean state
 if echo "$COMMAND" | grep -qE 'gh\s+pr\s+merge'; then
-  echo "REMINDER: fetch origin main → new branch → delete old branch"
+  echo "PR merged. Post-merge cleanup will be needed after this command completes."
+  echo "Run: git fetch origin main && git checkout -b <next-branch> origin/main"
+fi
+
+# === Stale branch detection ===
+# Block git push on branches whose remote tracking branch no longer exists
+# Only triggers when upstream tracks the branch's own remote (not origin/main)
+if echo "$COMMAND" | grep -qE 'git\s+push(\s|$)'; then
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)
+    if [ -n "$UPSTREAM" ]; then
+      # Extract the remote branch name from upstream (e.g., "origin/feature/foo" → "feature/foo")
+      UPSTREAM_BRANCH="${UPSTREAM#origin/}"
+      # Only check if upstream tracks this branch's own remote (not main/master)
+      if [ "$UPSTREAM_BRANCH" = "$CURRENT_BRANCH" ]; then
+        REMOTE_REF="refs/remotes/$UPSTREAM"
+        if ! git show-ref --verify --quiet "$REMOTE_REF" 2>/dev/null; then
+          echo "BLOCKED: remote branch '$UPSTREAM' no longer exists (likely deleted after PR merge)." >&2
+          echo "" >&2
+          echo "Post-merge cleanup:" >&2
+          echo "  1. git fetch origin main" >&2
+          echo "  2. git checkout -b <next-branch> origin/main" >&2
+          echo "  3. git branch -D $CURRENT_BRANCH" >&2
+          exit 2
+        fi
+      fi
+    fi
+  fi
+fi
+
+# === Post-merge: allow git branch -D for old merged branches ===
+# git branch -D is normally risky, but safe for cleaning up merged branches
+if echo "$COMMAND" | grep -qE 'git\s+branch\s+-[dD]\s+'; then
+  BRANCH_TO_DELETE=$(echo "$COMMAND" | sed -n 's/.*git branch -[dD] \([^ ]*\).*/\1/p')
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ "$BRANCH_TO_DELETE" = "$CURRENT_BRANCH" ]; then
+    echo "BLOCKED: cannot delete the branch you're currently on. Switch to a new branch first." >&2
+    echo "  git checkout -b <next-branch> origin/main" >&2
+    exit 2
+  fi
+  # Allow deletion of merged branches (non-blocking)
+  if git branch --merged origin/main 2>/dev/null | grep -qE "^\s+$BRANCH_TO_DELETE\$"; then
+    echo "Branch '$BRANCH_TO_DELETE' is merged — safe to delete."
+  fi
 fi
 
 exit 0
@@ -709,9 +754,11 @@ This is the most impactful file. It tells Claude how to work in the project. Ada
   - Scopes: (define project-specific scopes)
 
 ## Post-Merge Protocol
-1. git fetch origin main
-2. git checkout -b <next-branch> origin/main
-3. git branch -d <merged-branch>
+After a PR is merged, the remote branch is deleted. You MUST transition before doing any other work:
+1. Do NOT commit or push on the current branch — it will fail
+2. `git fetch origin main`
+3. `git checkout -b <next-branch> origin/main`
+4. `git branch -D <merged-branch>` (safe — it's already merged)
 
 ## Critical Rules
 ### Do
