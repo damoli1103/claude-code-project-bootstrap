@@ -301,7 +301,8 @@ if echo "$COMMAND" | grep -qE '>\s*/|>\s*~'; then
 fi
 
 # === Branch name validation ===
-if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+'; then
+# Skip if command is gh/curl/etc. that may contain git examples in body text
+if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+' && ! echo "$COMMAND" | grep -qE '^(gh|curl|echo|cat|printf)\s'; then
   BRANCH_NAME=$(echo "$COMMAND" | sed -n 's/.*git checkout -b \([^ ]*\).*/\1/p')
   if [ -n "$BRANCH_NAME" ] && ! echo "$BRANCH_NAME" | grep -qE '^(feature|fix|test|refactor|docs|chore|perf)/'; then
     echo "BLOCKED: branch name '$BRANCH_NAME' does not follow convention. Use one of: feature/, fix/, test/, refactor/, docs/, chore/, perf/" >&2
@@ -310,7 +311,8 @@ if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+'; then
 fi
 
 # === Pre-commit gates ===
-if echo "$COMMAND" | grep -qE 'git\s+commit'; then
+# Skip if command is gh/curl/etc. that may contain git examples in body text
+if echo "$COMMAND" | grep -qE 'git\s+commit' && ! echo "$COMMAND" | grep -qE '^(gh|curl|echo|cat|printf)\s'; then
 
   # Build gate
   "$CLAUDE_PROJECT_DIR"/.claude/hooks/build-check.sh || { echo "BLOCKED: build or tests failed — fix before committing." >&2; exit 2; }
