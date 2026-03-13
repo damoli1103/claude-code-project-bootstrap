@@ -301,7 +301,8 @@ if echo "$COMMAND" | grep -qE '>\s*/|>\s*~'; then
 fi
 
 # === Branch name validation ===
-if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+'; then
+# Skip if command is gh/curl/etc. that may contain git examples in body text
+if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+' && ! echo "$COMMAND" | grep -qE '^(gh|curl|echo|cat|printf)\s'; then
   BRANCH_NAME=$(echo "$COMMAND" | sed -n 's/.*git checkout -b \([^ ]*\).*/\1/p')
   if [ -n "$BRANCH_NAME" ] && ! echo "$BRANCH_NAME" | grep -qE '^(feature|fix|test|refactor|docs|chore|perf)/'; then
     echo "BLOCKED: branch name '$BRANCH_NAME' does not follow convention. Use one of: feature/, fix/, test/, refactor/, docs/, chore/, perf/" >&2
@@ -310,7 +311,8 @@ if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+'; then
 fi
 
 # === Pre-commit gates ===
-if echo "$COMMAND" | grep -qE 'git\s+commit'; then
+# Skip if command is gh/curl/etc. that may contain git examples in body text
+if echo "$COMMAND" | grep -qE 'git\s+commit' && ! echo "$COMMAND" | grep -qE '^(gh|curl|echo|cat|printf)\s'; then
 
   # Build gate
   "$CLAUDE_PROJECT_DIR"/.claude/hooks/build-check.sh || { echo "BLOCKED: build or tests failed — fix before committing." >&2; exit 2; }
@@ -382,7 +384,12 @@ fi
 if echo "$COMMAND" | grep -qE 'git\s+branch\s+-[dD]\s+'; then
   BRANCH_TO_DELETE=$(echo "$COMMAND" | sed -n 's/.*git branch -[dD] \([^ ]*\).*/\1/p')
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [ "$BRANCH_TO_DELETE" = "$CURRENT_BRANCH" ]; then
+  # If the command chains checkout-then-delete, the checkout will switch away first — allow it
+  CHAINS_CHECKOUT=false
+  if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+.*&&.*git\s+branch\s+-[dD]'; then
+    CHAINS_CHECKOUT=true
+  fi
+  if [ "$BRANCH_TO_DELETE" = "$CURRENT_BRANCH" ] && [ "$CHAINS_CHECKOUT" = "false" ]; then
     echo "BLOCKED: cannot delete the branch you're currently on. Switch to a new branch first." >&2
     echo "  git checkout -b <next-branch> origin/main" >&2
     exit 2
