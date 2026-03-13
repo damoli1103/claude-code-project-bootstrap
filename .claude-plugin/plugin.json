@@ -1,0 +1,12 @@
+{
+  "name": "claude-code-project-bootstrap",
+  "description": "Project bootstrap with hooks and guardrails, 45+ point project audit, and structured multi-phase planning with codebase analysis.",
+  "version": "1.0.0",
+  "author": {
+    "name": "damoli1103"
+  },
+  "homepage": "https://github.com/damoli1103/claude-code-project-bootstrap",
+  "repository": "https://github.com/damoli1103/claude-code-project-bootstrap",
+  "license": "MIT",
+  "keywords": ["hooks", "guardrails", "bootstrap", "audit", "planning"]
+}
