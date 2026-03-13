@@ -382,7 +382,12 @@ fi
 if echo "$COMMAND" | grep -qE 'git\s+branch\s+-[dD]\s+'; then
   BRANCH_TO_DELETE=$(echo "$COMMAND" | sed -n 's/.*git branch -[dD] \([^ ]*\).*/\1/p')
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [ "$BRANCH_TO_DELETE" = "$CURRENT_BRANCH" ]; then
+  # If the command chains checkout-then-delete, the checkout will switch away first — allow it
+  CHAINS_CHECKOUT=false
+  if echo "$COMMAND" | grep -qE 'git\s+checkout\s+-b\s+.*&&.*git\s+branch\s+-[dD]'; then
+    CHAINS_CHECKOUT=true
+  fi
+  if [ "$BRANCH_TO_DELETE" = "$CURRENT_BRANCH" ] && [ "$CHAINS_CHECKOUT" = "false" ]; then
     echo "BLOCKED: cannot delete the branch you're currently on. Switch to a new branch first." >&2
     echo "  git checkout -b <next-branch> origin/main" >&2
     exit 2
